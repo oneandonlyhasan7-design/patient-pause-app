@@ -1,66 +1,32 @@
-name: Build and Package
+name: Build Bukkit JAR
 
 on:
   push:
-    branches: [ master, main, develop ]
-  pull_request:
-    branches: [ master, main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-          fetch-depth: 0
 
-      - name: Set up JDK 8
+    steps:
+      - name: 🧰 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: '8'
-          distribution: 'temurin'
-          cache: 'gradle'
+          distribution: temurin
+          java-version: 17
 
-      - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v3
-
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      - name: Build with Gradle
-        uses: gradle/gradle-build-action@v3
-        with:
-          gradle-version: wrapper
-          arguments: clean shadowJar --no-daemon --stacktrace
-        env:
-          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true -Dorg.gradle.welcome=never"
-
-      - name: Verify JAR exists
+      - name: ⚙️ Build with Gradle
         run: |
-          if [ ! -f target/nukkit-1.0-SNAPSHOT.jar ]; then
-            echo "Error: JAR file not found!"
-            exit 1
-          fi
-          echo "JAR file created successfully!"
-          ls -lh target/nukkit-1.0-SNAPSHOT.jar
+          chmod +x ./gradlew
+          ./gradlew clean build --no-daemon
 
-      - name: Upload JAR artifact
+      - name: 📦 Upload built JAR as artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
-          name: nukkit-${{ github.sha }}
-          path: target/nukkit-1.0-SNAPSHOT.jar
-          retention-days: 30
-          if-no-files-found: error
-
-      - name: Upload to release (on tag)
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: target/nukkit-1.0-SNAPSHOT.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: Bukkit-Host-JAR
+          path: build/libs/*.jar
